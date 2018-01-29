@@ -1,0 +1,25 @@
+### compilation ###
+cd YOUR_PATH/simba_sal_inf/
+g++ *.cpp -std=c++11 -o simba_sal_inf
+
+### run ###
+run the executable without any arguments to learn on run options:
+
+The program takes parameter values using '=' pairs. The order does not matter.
+The parameter names are:
+
+input_fasta_file (full path to the input sequences can be aligned or unaligned)
+file_with_paths_to_chop_tables (full path to a file listing files with chop tables)
+type_seq: DNA/AA (defaults to AA)
+path_to_chebi_JTT_coef_file (full path, only if AA)
+type_file: aligned/unaligned (defaults to unaligned)
+number_to_sample (number of alignemnts to sample, a non-negative int, defaults to 0)
+band_width (an int for corner cutting, defaults to -1 --> no corner cutting)
+opt_method: gotoh/full (defaults to gotoh)
+out_files_prefix
+
+Example usage:
+PATH/simba_sal_inf input_fasta_file=INPUT.fas file_with_paths_to_chop_tables=LIST_OF_TABLE_FILES.txt type_seq=AA path_to_chebi_JTT_coef_file=PATH/chebi_coef.txt type_file=aligned out_files_prefix=OUT_INF_
+
+
+
