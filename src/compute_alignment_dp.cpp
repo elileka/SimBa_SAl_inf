@@ -449,7 +449,7 @@ double compute_alignment_dp::compute_conditional_alignment_total_log_prob(int ba
 
 			log_probs.push_back(curr_alternative_log_prob); // add current log prob
 
-															// update max - these will be used in the sum of probs computation:
+			// update max - these will be used in the sum of probs computation:
 			if (max_obs_log_prob < curr_alternative_log_prob)
 			{
 				max_obs_log_prob = curr_alternative_log_prob;
@@ -459,10 +459,9 @@ double compute_alignment_dp::compute_conditional_alignment_total_log_prob(int ba
 
 	// compute sum of probs:
 	// the idea here is to reduce max_obs_log_prob from all log-probs
-	// we can then do exp(a - max_obs_log_prob), where 'a' is each of the log-probs
-	// then we take log(exp(a0 - max_obs_log_prob) + exp(a1 - max_obs_log_prob) + ... )
-	double threshold_for_exp = std::numeric_limits<double>::min_exponent / 2.0; // below this there is a risk of an underflow...
-	double _conditional_alignment_log_total_prob = 0.0;
+	// https://en.wikipedia.org/wiki/LogSumExp
+	double threshold_for_exp = std::numeric_limits<double>::min_exponent; // below this there is a risk of an underflow...
+	double sum_of_exp_diffs = 0;
 	for (size_t i = 0; i < log_probs.size(); i++)
 	{
 		double curr_log_diff = log_probs[i] - max_obs_log_prob;
@@ -476,8 +475,9 @@ double compute_alignment_dp::compute_conditional_alignment_total_log_prob(int ba
 		{
 			curr_exp_of_log_diff = exp(curr_log_diff);
 		}
-		_conditional_alignment_log_total_prob += curr_exp_of_log_diff;
+		sum_of_exp_diffs += curr_exp_of_log_diff;
 	}
+	_conditional_alignment_log_total_prob = max_obs_log_prob + log(sum_of_exp_diffs);
 
 	return (_conditional_alignment_log_total_prob);
 }
@@ -681,11 +681,7 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 	// _P_table contains the "forward" probabilities (eq 14 of Miklos et al 2004 with zero indices)
 	// we work in log-space but sum probabilites. This is possible thanks to:
 	// 1. collect into a vector all log - probs(denote each ai)
-	// 2. find the max log - prob(denote aM)
-	// 3. initiate exp_sum = 0.0
-	// 4. for each ai compute :
-	//    exp_sum += exp(ai - aM)
-	// 5. value for current table element is : aM + log(exp_sum)
+	// 2. https://en.wikipedia.org/wiki/LogSumExp
 
 	vector<size_t> anc_seq = _coded_seqs[0];
 	vector<size_t> des_seq = _coded_seqs[1];
@@ -822,7 +818,7 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 					double curr_prev_P_log = (_P_table[curr_anc_prev_ind][curr_des_prev_ind]); // computed unless not in band
 					if ((curr_prev_P_log > 0) && (band_width == -1)) // sanity check - if no band - all preceding elements should be already computed
 					{
-						cout << "We have a bug: " << curr_prev_P_log << endl;
+						cerr << "We have a bug: " << curr_prev_P_log << endl;
 					}
 					else if (curr_prev_P_log > 0) // not computed, if no bug - this is due to band
 					{
@@ -846,7 +842,7 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 
 					log_probs.push_back(curr_alternative_log_prob); // add current log prob
 
-																	// update max - these will be used in the sum of probs computation:
+					// update max - these will be used in the sum of probs computation:
 					if (max_obs_log_prob < curr_alternative_log_prob)
 					{
 						max_obs_log_prob = curr_alternative_log_prob;
@@ -859,15 +855,19 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 		// the idea here is to reduce max_obs_log_prob from all log-probs
 		// we can then do exp(a - max_obs_log_prob), where 'a' is each of the log-probs
 		// then we take log(exp(a0 - max_obs_log_prob) + exp(a1 - max_obs_log_prob) + ... )
-		double threshold_for_exp = std::numeric_limits<double>::min_exponent / 2.0; // below this there is a risk of an underflow...
+		// https://en.wikipedia.org/wiki/LogSumExp
+		double threshold_for_exp = std::numeric_limits<double>::min_exponent; // below this there is a risk of an underflow...
 		double sum_of_exp_reduced_log_probs = 0.0;
 		for (size_t i = 0; i < log_probs.size(); i++)
 		{
+			//cout << "curr log-prob is: " << log_probs[i] << " and max log-prob is: " << max_obs_log_prob << endl;
 			double curr_log_diff = log_probs[i] - max_obs_log_prob;
 			double curr_exp_of_log_diff;
 			if (curr_log_diff < threshold_for_exp)
 			{
 				curr_exp_of_log_diff = exp(threshold_for_exp);
+				cout << "curr log-prob is: " << log_probs[i] << " and max log-prob is: " << max_obs_log_prob << endl;
+				cout << "curr anc_ind_i is: " << anc_ind_i << " and des_ind_j is: " << des_ind_j << endl;
 				cout << "when computing the sum of probs we take the exponenet of differences of each log-prob from the max log-prob. In this case the difference was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
 			}
 			else
@@ -887,11 +887,7 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 	// _X_table contains the "backward" probabilities (analog of eq 14 of Miklos et al 2004 with zero indices)
 	// we work in log-space but sum probabilites. This is possible thanks to:
 	// 1. collect into a vector all log - probs(denote each ai)
-	// 2. find the max log - prob(denote aM)
-	// 3. initiate exp_sum = 0.0
-	// 4. for each ai compute :
-	//    exp_sum += exp(ai - aM)
-	// 5. value for current table element is : aM + log(exp_sum)
+	// https://en.wikipedia.org/wiki/LogSumExp
 
 	vector<size_t> anc_seq = _coded_seqs[0];
 	vector<size_t> des_seq = _coded_seqs[1];
@@ -1064,15 +1060,15 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 						max_obs_log_prob = curr_alternative_log_prob;
 					}
 				}
-			}
-			
+			}		
 		}
 
 		// compute sum of probs:
 		// the idea here is to reduce max_obs_log_prob from all log-probs
 		// we can then do exp(a - max_obs_log_prob), where 'a' is each of the log-probs
 		// then we take log(exp(a0 - max_obs_log_prob) + exp(a1 - max_obs_log_prob) + ... )
-		double threshold_for_exp = std::numeric_limits<double>::min_exponent / 2.0; // below this there is a risk of an underflow...
+		// https://en.wikipedia.org/wiki/LogSumExp
+		double threshold_for_exp = std::numeric_limits<double>::min_exponent; // below this there is a risk of an underflow...
 		double sum_of_exp_reduced_log_probs = 0.0;
 		for (size_t i = 0; i < log_probs.size(); i++)
 		{
