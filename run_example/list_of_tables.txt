@@ -1,0 +1,2 @@
+run_example\chop_tables_r_param_0.65_basic_mu_0.14_basic_gamma_0.99_max_indel_length_50_length_of_anc_1000000_t_1.11.txt	0.65	0.14	0.99	50	1.11
+run_example\chop_tables_r_param_0_basic_mu_0.19_basic_gamma_0.99_max_indel_length_50_length_of_anc_1000000_t_1.03.txt	0	0.19	0.99	50	1.03
