@@ -291,6 +291,11 @@ int main(int argc, const char * argv[])
 			myLog << "best alignment LL with current table: " << curr_best_alignment_log_prob << endl;
 			myLog << "best alignment fasta: " << endl;
 			print_seqs_fasta(curr_best_alignment, myLog);
+
+			// 30.01.2018 just for posterior probability computation:
+			//double conditional_alignment_total_log_prob = dp_alignment.compute_conditional_alignment_total_log_prob(band_width);
+			//myLog << "conditional alignment total LL with current table: " << conditional_alignment_total_log_prob << endl << endl;
+
 		}
 	}
 	clock_t end_param_opt = clock(); // end measuring time
@@ -325,6 +330,10 @@ int main(int argc, const char * argv[])
 		myLog << "best alignment LL with gotoh table: " << conditional_best_alignment_log_prob << endl;
 		myLog << "best alignment fasta: " << endl;
 		print_seqs_fasta(best_alignment, myLog);
+
+		// 30.01.2018 just for posterior probability computation:
+		// double conditional_alignment_total_log_prob = dp_alignment.compute_conditional_alignment_total_log_prob(band_width);
+		// myLog << "conditional alignment total LL with gotoh table: " << conditional_alignment_total_log_prob << endl << endl;
 	}
 
 	double avg_elapsed_secs_per_dp_alignment = elapsed_secs_in_all_dp_procedures / number_of_computed_dp_alignments;
