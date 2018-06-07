@@ -2,7 +2,7 @@
 # This directory contains what you need for a small run example.                                        #
 # The paths are relative to the working dir. It's possible to replace them with full paths.             #
 # Place the run_example directory in your working directory.                                            #
-# If you build a Visual Studio solution, use this link to figure our where the working dir is:          #
+# If you build a Visual Studio solution, use this link to figure out where the working dir is:          #
 # https://stackoverflow.com/questions/3423538/how-can-i-find-out-the-value-of-projectdir                #
 #########################################################################################################
 
