@@ -21,15 +21,8 @@ using namespace std;
 struct combination {
     // constructor
     combination(double ir, double imu, double it, string ifile_name) : r(ir), mu(imu), t(it), file_name(ifile_name) {
-		r_minus = nullptr;
-		r_plus = nullptr;
-		mu_minus = nullptr;
-		mu_plus = nullptr;
-		t_minus = nullptr;
-		t_plus = nullptr;
-
 		LL_on_fixed_Gotoh = 1.0;
-		LL_optimized = 1.0;
+		LL_dp = 1.0;
     }
 
 	double r;
@@ -37,15 +30,10 @@ struct combination {
 	double t;
 	string file_name;
 	double LL_on_fixed_Gotoh;
-	double LL_optimized;
+	double LL_dp;
 	
 	// neighbours:
-	combination * r_minus;
-	combination * r_plus;
-	combination * mu_minus;
-	combination * mu_plus;
-	combination * t_minus;
-	combination * t_plus;
+	vector<combination *> neighbors;
 };
 
 int search_index_in_vector(vector<double> & sorted_vec_to_search_in, double val_to_find)
@@ -156,8 +144,7 @@ void parse_tables_file(map<vector<double>, combination> & map_of_combinations, s
 			// if found - update and break:
 			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
 			{
-				//curr_combination.second.r_minus = & map_of_combinations.at(neighbour_params);
-				map_of_combinations.at(curr_params).r_minus = & map_of_combinations.at(neighbour_params);
+				map_of_combinations.at(curr_params).neighbors.push_back(& map_of_combinations.at(neighbour_params));
 				break;
 			}
 		}
@@ -170,7 +157,7 @@ void parse_tables_file(map<vector<double>, combination> & map_of_combinations, s
 			// if found - update and break:
 			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
 			{
-				map_of_combinations.at(curr_params).r_plus = & map_of_combinations.at(neighbour_params);
+				map_of_combinations.at(curr_params).neighbors.push_back(& map_of_combinations.at(neighbour_params));
 				break;
 			}
 		}
@@ -184,7 +171,7 @@ void parse_tables_file(map<vector<double>, combination> & map_of_combinations, s
 			// if found - update and break:
 			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
 			{
-				map_of_combinations.at(curr_params).mu_minus = & map_of_combinations.at(neighbour_params);
+				map_of_combinations.at(curr_params).neighbors.push_back(& map_of_combinations.at(neighbour_params));
 				break;
 			}
 		}
@@ -197,7 +184,7 @@ void parse_tables_file(map<vector<double>, combination> & map_of_combinations, s
 			// if found - update and break:
 			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
 			{
-				map_of_combinations.at(curr_params).mu_plus = & map_of_combinations.at(neighbour_params);
+				map_of_combinations.at(curr_params).neighbors.push_back(& map_of_combinations.at(neighbour_params));
 				break;
 			}
 		}
@@ -211,7 +198,7 @@ void parse_tables_file(map<vector<double>, combination> & map_of_combinations, s
 			// if found - update and break:
 			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
 			{
-				map_of_combinations.at(curr_params).t_minus = & map_of_combinations.at(neighbour_params);
+				map_of_combinations.at(curr_params).neighbors.push_back(& map_of_combinations.at(neighbour_params));
 				break;
 			}
 		}
@@ -224,7 +211,7 @@ void parse_tables_file(map<vector<double>, combination> & map_of_combinations, s
 			// if found - update and break:
 			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
 			{
-				map_of_combinations.at(curr_params).t_plus = & map_of_combinations.at(neighbour_params);
+				map_of_combinations.at(curr_params).neighbors.push_back(& map_of_combinations.at(neighbour_params));
 				break;
 			}
 		}
@@ -311,43 +298,18 @@ int test_main(int argc, const char * argv[])
 		double curr_t = curr_params[2];
 
 		cout << "curr combination: " << curr_r << ", " << curr_mu << ", " << curr_t << endl;
-		if (curr_combination.second.r_minus != nullptr)
+		for(size_t i = 0; i < curr_combination.second.neighbors.size(); i++)
 		{
-			combination r_minus = * curr_combination.second.r_minus;
-			cout << "has r_minus neighbour: " << r_minus.r << ", " << r_minus.mu << ", " << r_minus.t << endl;
-		}
-		if (curr_combination.second.r_plus != nullptr)
-		{
-			combination r_plus = * curr_combination.second.r_plus;
-			cout << "has r_plus neighbour: " << r_plus.r << ", " << r_plus.mu << ", " << r_plus.t << endl;
-		}
-		if (curr_combination.second.mu_minus != nullptr)
-		{
-			combination mu_minus = * curr_combination.second.mu_minus;
-			cout << "has mu_minus neighbour: " << mu_minus.r << ", " << mu_minus.mu << ", " << mu_minus.t << endl;
-		}
-		if (curr_combination.second.mu_plus != nullptr)
-		{
-			combination mu_plus = * curr_combination.second.mu_plus;
-			cout << "has mu_plus neighbour: " << mu_plus.r << ", " << mu_plus.mu << ", " << mu_plus.t << endl;
-		}
-		if (curr_combination.second.t_minus != nullptr)
-		{
-			combination t_minus = * curr_combination.second.t_minus;
-			cout << "has t_minus neighbour: " << t_minus.r << ", " << t_minus.mu << ", " << t_minus.t << endl;
-		}
-		if (curr_combination.second.t_plus != nullptr)
-		{
-			combination t_plus = * curr_combination.second.t_plus;
-			cout << "has t_plus neighbour: " << t_plus.r << ", " << t_plus.mu << ", " << t_plus.t << endl;
+			combination neighbor = * curr_combination.second.neighbors[i];
+			cout << "has neighbor: " << neighbor.r << ", " << neighbor.mu << ", " << neighbor.t << endl;
 		}
 	}
-
 
 	return 0;
 }
 
-int main(int argc, const char * argv[])
+
+int new_main(int argc, const char * argv[])
 {
 	if (argc < 2)
 	{
@@ -448,11 +410,12 @@ int main(int argc, const char * argv[])
 	std::string result_file_string = result_file.str();
 
 	// initialize
-	double conditional_best_alignment_log_prob = 1.0;
-	string best_table_best_alignment = "";
+	combination * best_combination_ptr = nullptr;
+	double best_log_prob = 1.0;
+	//string best_table_best_alignment = "";
 
-	vector<string> best_alignment; // according to the table most fitting for the best alignment
-	double best_branch_length_t; // according to the table most fitting for the best alignment
+	//vector<string> best_alignment; // according to the table most fitting for the best alignment
+	//double best_branch_length_t; // according to the table most fitting for the best alignment
 
 	read_input_seqs input_seqs_obj(input_fasta_file, is_aligned, is_jc);
 	vector<string> input_seqs;
@@ -460,8 +423,8 @@ int main(int argc, const char * argv[])
 	input_seqs.push_back(input_seqs_obj.get_str_orig_seq(1));
 	
 	// get Gotoh alignment - we will choose the parameters based on it:
-	double conditional_gotoh_alignment_log_prob = 1.0;
-	double gotoh_branch_length_t;
+	double gotoh_alignment_log_prob = 1.0;
+	//double gotoh_branch_length_t;
 
 	string best_table_gotoh_alignment = "";
 	vector<vector<size_t>> gotoh_coded_alignment;
@@ -493,7 +456,7 @@ int main(int argc, const char * argv[])
 	parse_tables_file(map_of_param_combinations, file_with_paths_to_chop_tables);
 	clock_t begin_param_opt = clock(); // start measureing time
 	// iterate over all map elements:
-	for (auto const & curr_combination : map_of_param_combinations)
+	for (auto & curr_combination : map_of_param_combinations)
 	{
 		vector<double> curr_params = curr_combination.first;
 		
@@ -516,90 +479,108 @@ int main(int argc, const char * argv[])
 				{
 					myLog << "working on table: " << curr_chop_tables_file_string << endl;
 					alignment gotoh_alignment(chop_tables_obj, gotoh_coded_alignment, branch_length_t, is_jc, quick_jtt_obj);
-					double curr_table_conditional_gotoh_alignment_log_prob = gotoh_alignment.get_alignment_log_probability_cond_on_anc();
-					if ((conditional_gotoh_alignment_log_prob > 0) || (curr_table_conditional_gotoh_alignment_log_prob > conditional_gotoh_alignment_log_prob))
+					double curr_table_gotoh_alignment_log_prob = gotoh_alignment.get_alignment_log_probability_cond_on_anc();
+					if ((gotoh_alignment_log_prob > 0) || (curr_table_gotoh_alignment_log_prob > gotoh_alignment_log_prob))
 					{
-						conditional_gotoh_alignment_log_prob = curr_table_conditional_gotoh_alignment_log_prob;
-						best_table_gotoh_alignment = curr_chop_tables_file_string;
-						gotoh_branch_length_t = branch_length_t;
+						gotoh_alignment_log_prob = curr_table_gotoh_alignment_log_prob;
+						best_combination_ptr = &(curr_combination.second);
 					}
-					myLog << "gotoh alignment LL with current table: " << curr_table_conditional_gotoh_alignment_log_prob << endl;
-					myLog << "gotoh alignment fasta: " << endl;
-					print_seqs_fasta(gotoh_aligned_seqs, myLog);
 				}
 			}
 		}
 		else // optimize by considering all tables in file (each - a dp procedure)
 		{
 			myLog << "working on table: " << curr_chop_tables_file_string << endl;
-			// prepare dp object:
-			compute_alignment_dp dp_alignment(chop_tables_obj, input_seqs_obj, branch_length_t, is_jc, quick_jtt_obj);
-
-			// compute best alignment on dp object:
-			double curr_best_alignment_log_prob;
-			bool should_take_max = true;
-			
+		
 			clock_t begin = clock(); // start measureing time
-			vector<string> curr_best_alignment = dp_alignment.get_sampled_alignment(curr_best_alignment_log_prob, should_take_max, band_width);
+			// create chop table object, prepare dp object and compute sum over all alignments using the dp object:
+			compute_alignment_dp dp_alignment(chop_tables_obj, input_seqs_obj, branch_length_t, is_jc, quick_jtt_obj);
+			double curr_combination_LL_dp = dp_alignment.compute_conditional_alignment_total_log_prob(band_width);
+			number_of_computed_dp_alignments++;
+			if ((best_log_prob > 0) || (curr_combination_LL_dp > best_log_prob))
+			{
+				best_log_prob = curr_combination_LL_dp;
+				best_combination_ptr = &(curr_combination.second);
+			}
 			clock_t end = clock(); // end measuring time
 			double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 			elapsed_secs_in_all_dp_procedures = elapsed_secs_in_all_dp_procedures + elapsed_secs;
 			number_of_computed_dp_alignments++;
-
-			if ((conditional_best_alignment_log_prob > 0) || (curr_best_alignment_log_prob > conditional_best_alignment_log_prob))
-			{
-				conditional_best_alignment_log_prob = curr_best_alignment_log_prob;
-				best_table_best_alignment = curr_chop_tables_file_string;
-				best_alignment = curr_best_alignment;
-				best_branch_length_t = branch_length_t;
-			}
-			myLog << "best alignment LL with current table: " << curr_best_alignment_log_prob << endl;
-			myLog << "best alignment fasta: " << endl;
-			print_seqs_fasta(curr_best_alignment, myLog);
-
-			// 30.01.2018 just for posterior probability computation:
-			//double conditional_alignment_total_log_prob = dp_alignment.compute_conditional_alignment_total_log_prob(band_width);
-			//myLog << "conditional alignment total LL with current table: " << conditional_alignment_total_log_prob << endl << endl;
 		}
 	}
-
 	clock_t end_param_opt = clock(); // end measuring time
 	double elapsed_secs_param_opt = double(end_param_opt - begin_param_opt) / CLOCKS_PER_SEC;
 
-	// end parameter optimization stage!!!
+	// end full optimization / search for gotoh starting point !!!
 
 	if (should_gotoh_opt) // now compute ML-PWA according to gotoh table
 	{
-		if (conditional_gotoh_alignment_log_prob > 0)
+		if (gotoh_alignment_log_prob > 0)
 		{
 			cerr << "looks like no tables were used with Gotoh - probably t didn't match... check log" << endl;
 			exit(1);
 		}
-		// create chop table object:
-		read_chop_tables gotoh_chop_tables_obj(best_table_gotoh_alignment);
-		// prepare dp object:
-		compute_alignment_dp dp_alignment(gotoh_chop_tables_obj, input_seqs_obj, gotoh_branch_length_t, is_jc, quick_jtt_obj);
-		// compute best alignment on dp object:
-		bool should_take_max = true;
+		
+		clock_t begin = clock(); // start measureing time - hill climbing
+		double epsilon_LL_imporvement = 0.01;
+		while (1)
+		{
+			if (best_combination_ptr->LL_dp < 0)
+			{
+				// visited this point, we are going in circles - break.
+				break;
+			}
+			
+			// create chop table object, prepare dp object and compute sum over all alignments using the dp object:
+			read_chop_tables curr_hill_climb_chop_tables_obj(best_combination_ptr->file_name);
+			compute_alignment_dp curr_hill_climb_dp(curr_hill_climb_chop_tables_obj, input_seqs_obj, best_combination_ptr->t, is_jc, quick_jtt_obj);
+			best_combination_ptr->LL_dp = curr_hill_climb_dp.compute_conditional_alignment_total_log_prob(band_width);
+			number_of_computed_dp_alignments++;
 
-		clock_t begin = clock(); // start measureing time
-		best_alignment = dp_alignment.get_sampled_alignment(conditional_best_alignment_log_prob, should_take_max, band_width);
-		clock_t end = clock(); // end measuring time
+			combination * best_neighbor_ptr = nullptr;
+			for(size_t i = 0; i < best_combination_ptr->neighbors.size(); i++)
+			{
+				combination * neighbor_ptr = best_combination_ptr->neighbors[i];
+
+				// compute the neighbor LL if not already computed:
+				if (neighbor_ptr->LL_dp > 0)
+				{
+					// create chop table object, prepare dp object and compute sum over all alignments using the dp object:
+					read_chop_tables neighbor_chop_tables_obj(neighbor_ptr->file_name);
+					compute_alignment_dp neighbor_dp(neighbor_chop_tables_obj, input_seqs_obj, neighbor_ptr->t, is_jc, quick_jtt_obj);
+					neighbor_ptr->LL_dp = neighbor_dp.compute_conditional_alignment_total_log_prob(band_width);
+					number_of_computed_dp_alignments++;
+				}
+
+				// update best neighbor, if found one better:
+				if ((best_neighbor_ptr == nullptr) || (best_neighbor_ptr->LL_dp < neighbor_ptr->LL_dp))
+				{
+					best_neighbor_ptr = neighbor_ptr;
+				}
+			}
+
+			// if no neighbors or if all neighbours are not an improvement (up to an epsilon) - break with current point:
+			if ((best_neighbor_ptr == nullptr) || ((best_neighbor_ptr->LL_dp) < (epsilon_LL_imporvement + best_combination_ptr->LL_dp)))
+			{
+				break;
+			}
+			
+			// a neighbor is better - take it:
+			best_combination_ptr = best_neighbor_ptr;
+		}
+		clock_t end = clock(); // end measuring time - hill climbing
 		double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 		elapsed_secs_in_all_dp_procedures = elapsed_secs_in_all_dp_procedures + elapsed_secs;
-		number_of_computed_dp_alignments++;
-
-		best_table_best_alignment = best_table_gotoh_alignment;
-		best_branch_length_t = gotoh_branch_length_t;
-
-		myLog << "best alignment LL with gotoh table: " << conditional_best_alignment_log_prob << endl;
-		myLog << "best alignment fasta: " << endl;
-		print_seqs_fasta(best_alignment, myLog);
-
-		// 30.01.2018 just for posterior probability computation:
-		// double conditional_alignment_total_log_prob = dp_alignment.compute_conditional_alignment_total_log_prob(band_width);
-		// myLog << "conditional alignment total LL with gotoh table: " << conditional_alignment_total_log_prob << endl << endl;
 	}
+
+	/*
+	best_table_best_alignment = best_table_gotoh_alignment;
+	best_branch_length_t = gotoh_branch_length_t;
+
+	myLog << "best alignment LL with gotoh table: " << conditional_best_alignment_log_prob << endl;
+	myLog << "best alignment fasta: " << endl;
+	print_seqs_fasta(best_alignment, myLog);
+	
 
 	double avg_elapsed_secs_per_dp_alignment = elapsed_secs_in_all_dp_procedures / number_of_computed_dp_alignments;
 	myLog << "total time parameter optimization stage (seconds): " << elapsed_secs_param_opt << endl;
@@ -666,12 +647,12 @@ int main(int argc, const char * argv[])
 	}
 	
 	myRes.close();
-
+	*/
 	return 0;
 }
 
 
-int original_main(int argc, const char * argv[])
+int main(int argc, const char * argv[])
 {
 	if (argc < 2)
 	{
