@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <algorithm>
 #include <random>
 #include <map>
 #include <cmath>
@@ -16,6 +17,216 @@
 #include "read_input_seqs.h"
 
 using namespace std;
+
+struct combination {
+    // constructor
+    combination(double ir, double imu, double it, string ifile_name) : r(ir), mu(imu), t(it), file_name(ifile_name) {
+		r_minus = nullptr;
+		r_plus = nullptr;
+		mu_minus = nullptr;
+		mu_plus = nullptr;
+		t_minus = nullptr;
+		t_plus = nullptr;
+    }
+
+	double r;
+	double mu;
+	double t;
+	string file_name;
+	double LL_on_fixed_Gotoh;
+	double LL_optimized;
+	
+	// neighbours:
+	combination * r_minus;
+	combination * r_plus;
+	combination * mu_minus;
+	combination * mu_plus;
+	combination * t_minus;
+	combination * t_plus;
+};
+
+int search_index_in_vector(vector<double> & sorted_vec_to_search_in, double val_to_find)
+{
+	size_t num_elements = sorted_vec_to_search_in.size();
+	size_t start_index = 0;
+	size_t end_index = num_elements - 1;
+	size_t middle_element_index = start_index + ((end_index - start_index + 1) / 2); // this rounds down (17 / 2) = 8
+	while ((end_index - start_index + 1) > 0)
+	{
+		// found:
+		if (val_to_find == sorted_vec_to_search_in[middle_element_index])
+		{
+			return middle_element_index;
+		}
+		// not found:
+		if (val_to_find > sorted_vec_to_search_in[middle_element_index])
+		{
+			start_index = (middle_element_index + 1);
+		}
+		else
+		{
+			end_index = (middle_element_index - 1);
+		}
+		middle_element_index = start_index + ((end_index - start_index + 1) / 2);
+	}
+	// not found at all:
+	return -1;
+}
+
+void parse_tables_file(map<vector<double>, combination> & map_of_combinations, string file_with_paths_to_chop_tables) 
+{
+	//map<vector<double>, combination> map_of_combinations;
+	vector<double> r_vals;
+	vector<double> mu_vals;
+	vector<double> t_vals;
+
+	// go over all tables in the tables file
+	ifstream tables_file(file_with_paths_to_chop_tables);
+	string line;
+	while (getline(tables_file, line))
+	{
+		stringstream linestream(line);
+
+		string curr_chop_tables_file_string;
+		double r_param;
+		double basic_mu;
+		double basic_gamma;
+		size_t max_indel_length;
+		double branch_length_t;
+
+		getline(linestream, curr_chop_tables_file_string, '\t'); // read up-to the first tab (discard tab)
+		linestream >> r_param >> basic_mu >> basic_gamma >> max_indel_length >> branch_length_t;
+		cout << "sanity check - curr table has branch_length_t: " << branch_length_t << endl; // table validation
+
+		vector<double> combination_params;
+		combination_params.push_back(r_param);
+		combination_params.push_back(basic_mu);
+		combination_params.push_back(branch_length_t);
+
+		// map: <r, mu, t> to combination_struct
+		map_of_combinations.insert(make_pair(combination_params,combination(r_param, basic_mu, branch_length_t, curr_chop_tables_file_string)));
+
+		// collect values:
+		r_vals.push_back(r_param);
+		mu_vals.push_back(basic_mu);
+		t_vals.push_back(branch_length_t);
+	}
+
+	// sort vectors and remove duplicates:
+    sort(r_vals.begin(), r_vals.end());
+    auto last_r = unique(r_vals.begin(), r_vals.end());
+    r_vals.erase(last_r, r_vals.end());
+
+    sort(mu_vals.begin(), mu_vals.end());
+    auto last_mu = unique(mu_vals.begin(), mu_vals.end());
+    mu_vals.erase(last_mu, mu_vals.end());
+
+    sort(t_vals.begin(), t_vals.end());
+    auto last_t = unique(t_vals.begin(), t_vals.end());
+    t_vals.erase(last_t, t_vals.end());
+
+	// iterate over all map elements to add neighbours:
+	for (auto curr_combination : map_of_combinations)
+	{
+		vector<double> curr_params = curr_combination.first;
+		
+		// find the index of the current values in the sorted vectors:
+		double curr_r = curr_params[0];
+		double curr_mu = curr_params[1];
+		double curr_t = curr_params[2];
+
+		int curr_r_index = search_index_in_vector(r_vals, curr_r);
+		int curr_mu_index = search_index_in_vector(mu_vals, curr_mu);
+		int curr_t_index = search_index_in_vector(t_vals, curr_t);
+		if ((curr_r_index == -1) || (curr_mu_index == -1) || (curr_t_index == -1))
+		{
+			cerr << "the r, mu, t combination was not found. Something is not right..." << " r = " << curr_r << " mu = " << curr_mu << " t = " << curr_t << endl;
+			exit(1);
+		}
+		
+		// add r minus neighbour:
+		for(int r_minus_ind = (curr_r_index - 1); r_minus_ind >= 0; r_minus_ind--)
+		{
+			vector<double> neighbour_params = curr_combination.first;
+			neighbour_params[0] = r_vals[r_minus_ind];
+
+			// if found - update and break:
+			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
+			{
+				//curr_combination.second.r_minus = & map_of_combinations.at(neighbour_params);
+				map_of_combinations.at(curr_params).r_minus = & map_of_combinations.at(neighbour_params);
+				break;
+			}
+		}
+		// add r plus neighbour:
+		for(int r_plus_ind = (curr_r_index + 1); r_plus_ind < r_vals.size(); r_plus_ind++)
+		{
+			vector<double> neighbour_params = curr_combination.first;
+			neighbour_params[0] = r_vals[r_plus_ind];
+
+			// if found - update and break:
+			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
+			{
+				map_of_combinations.at(curr_params).r_plus = & map_of_combinations.at(neighbour_params);
+				break;
+			}
+		}
+
+		// add mu minus neighbour:
+		for(int mu_minus_ind = (curr_mu_index - 1); mu_minus_ind >= 0; mu_minus_ind--)
+		{
+			vector<double> neighbour_params = curr_combination.first;
+			neighbour_params[1] = mu_vals[mu_minus_ind];
+
+			// if found - update and break:
+			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
+			{
+				map_of_combinations.at(curr_params).mu_minus = & map_of_combinations.at(neighbour_params);
+				break;
+			}
+		}
+		// add mu plus neighbour:
+		for(int mu_plus_ind = (curr_mu_index + 1); mu_plus_ind < mu_vals.size(); mu_plus_ind++)
+		{
+			vector<double> neighbour_params = curr_combination.first;
+			neighbour_params[1] = mu_vals[mu_plus_ind];
+
+			// if found - update and break:
+			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
+			{
+				map_of_combinations.at(curr_params).mu_plus = & map_of_combinations.at(neighbour_params);
+				break;
+			}
+		}
+
+		// add t minus neighbour:
+		for(int t_minus_ind = (curr_t_index - 1); t_minus_ind >= 0; t_minus_ind--)
+		{
+			vector<double> neighbour_params = curr_combination.first;
+			neighbour_params[2] = t_vals[t_minus_ind];
+
+			// if found - update and break:
+			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
+			{
+				map_of_combinations.at(curr_params).t_minus = & map_of_combinations.at(neighbour_params);
+				break;
+			}
+		}
+		// add t plus neighbour:
+		for(int t_plus_ind = (curr_t_index + 1); t_plus_ind < t_vals.size(); t_plus_ind++)
+		{
+			vector<double> neighbour_params = curr_combination.first;
+			neighbour_params[2] = t_vals[t_plus_ind];
+
+			// if found - update and break:
+			if (map_of_combinations.find(neighbour_params) != map_of_combinations.end()) 
+			{
+				map_of_combinations.at(curr_params).t_plus = & map_of_combinations.at(neighbour_params);
+				break;
+			}
+		}
+	}
+}
 
 void print_seqs_fasta(vector<string> & aligned_seqs, ofstream & myfilestream)
 {
@@ -78,6 +289,61 @@ string getCmdOption(int num_args, const char* argv[], const std::string& option)
 	return val;
 }
 
+
+int test_main(int argc, const char * argv[])
+{
+	
+	string file_with_paths_to_chop_tables = "C:/Users/a-elevyka/SimbaSAl/SimBa_SAl_inf/run_example/list_of_tables_test.txt";
+	map<vector<double>, combination> map_of_param_combinations;
+	parse_tables_file(map_of_param_combinations, file_with_paths_to_chop_tables);
+
+	// iterate over all map elements:
+	for (auto const & curr_combination : map_of_param_combinations)
+	{
+		vector<double> curr_params = curr_combination.first;
+		
+		// find the index of the current values in the sorted vectors:
+		double curr_r = curr_params[0];
+		double curr_mu = curr_params[1];
+		double curr_t = curr_params[2];
+
+		cout << "curr combination: " << curr_r << ", " << curr_mu << ", " << curr_t << endl;
+		if (curr_combination.second.r_minus != nullptr)
+		{
+			combination r_minus = * curr_combination.second.r_minus;
+			cout << "has r_minus neighbour: " << r_minus.r << ", " << r_minus.mu << ", " << r_minus.t << endl;
+		}
+		if (curr_combination.second.r_plus != nullptr)
+		{
+			combination r_plus = * curr_combination.second.r_plus;
+			cout << "has r_plus neighbour: " << r_plus.r << ", " << r_plus.mu << ", " << r_plus.t << endl;
+		}
+		if (curr_combination.second.mu_minus != nullptr)
+		{
+			combination mu_minus = * curr_combination.second.mu_minus;
+			cout << "has mu_minus neighbour: " << mu_minus.r << ", " << mu_minus.mu << ", " << mu_minus.t << endl;
+		}
+		if (curr_combination.second.mu_plus != nullptr)
+		{
+			combination mu_plus = * curr_combination.second.mu_plus;
+			cout << "has mu_plus neighbour: " << mu_plus.r << ", " << mu_plus.mu << ", " << mu_plus.t << endl;
+		}
+		if (curr_combination.second.t_minus != nullptr)
+		{
+			combination t_minus = * curr_combination.second.t_minus;
+			cout << "has t_minus neighbour: " << t_minus.r << ", " << t_minus.mu << ", " << t_minus.t << endl;
+		}
+		if (curr_combination.second.t_plus != nullptr)
+		{
+			combination t_plus = * curr_combination.second.t_plus;
+			cout << "has t_plus neighbour: " << t_plus.r << ", " << t_plus.mu << ", " << t_plus.t << endl;
+		}
+	}
+
+
+	return 0;
+}
+
 int main(int argc, const char * argv[])
 {
 	if (argc < 2)
@@ -117,9 +383,9 @@ int main(int argc, const char * argv[])
 	}
 	else
 	{
-		if (file_with_paths_to_chop_tables == "")
+		if (path_to_chebi_JTT_coef_file == "")
 		{
-			cerr << "AA type seq is chosen but path file_with_paths_to_chop_tables is not provided!" << endl;
+			cerr << "AA type seq is chosen but path path_to_chebi_JTT_coef_file is not provided!" << endl;
 			return 1;
 		}
 	}
