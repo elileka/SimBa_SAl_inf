@@ -27,6 +27,9 @@ struct combination {
 		mu_plus = nullptr;
 		t_minus = nullptr;
 		t_plus = nullptr;
+
+		LL_on_fixed_Gotoh = 1.0;
+		LL_optimized = 1.0;
     }
 
 	double r;
