@@ -26,5 +26,5 @@
 # In Visual Studio, put this in the program arguments:                                                  #
 input_fasta_file=.\run_example\HOMSTRAD_true_MIP.fas file_with_paths_to_chop_tables=.\run_example\list_of_tables.txt type_seq=AA path_to_chebi_JTT_coef_file=.\run_example\chebi_coef.txt type_file=aligned out_files_prefix=.\run_example\EXAMPLE_OUT_ opt_method=full
 # In UNIX:                                                                                              #
-<PATH_TO_SIMBA_SAL_INF_PROGRAM> input_fasta_file=.\run_example\HOMSTRAD_true_MIP.fas file_with_paths_to_chop_tables=.\run_example\list_of_tables.txt type_seq=AA path_to_chebi_JTT_coef_file=.\run_example\chebi_coef.txt type_file=aligned out_files_prefix=.\run_example\EXAMPLE_OUT_ opt_method=full
+<PATH_TO_SIMBA_SAL_INF_PROGRAM> input_fasta_file=./run_example/HOMSTRAD_true_MIP.fas file_with_paths_to_chop_tables=./run_example/list_of_tables.txt type_seq=AA path_to_chebi_JTT_coef_file=./run_example/chebi_coef.txt type_file=aligned out_files_prefix=./run_example/EXAMPLE_OUT_ opt_method=full
 #########################################################################################################
