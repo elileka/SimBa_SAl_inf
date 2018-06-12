@@ -423,8 +423,11 @@ int main(int argc, const char * argv[])
 	parse_tables_file(map_of_param_combinations, file_with_paths_to_chop_tables);
 
 	// iterate over all map elements:
+	size_t num_parameter_combinations = 0;
 	for (auto & curr_map_entry : map_of_param_combinations)
 	{
+		num_parameter_combinations++; // just a counter
+
 		vector<double> curr_params = curr_map_entry.first;	
 		// find the index of the current values in the sorted vectors:
 		double r_param = curr_params[0];
@@ -554,6 +557,13 @@ int main(int argc, const char * argv[])
 			if ((best_neighbor_ptr == nullptr) || ((best_neighbor_ptr->LL_dp) < (epsilon_LL_imporvement + best_combination_ptr->LL_dp)))
 			{
 				break;
+			}
+
+			// we should not get here - this protects against an infinite loop:
+			if (num_hillclimb_iterations == num_parameter_combinations)
+			{
+				cerr << "something went wrong with the optimization procedure. number of iterations is equal to number of parameter combinations: " << num_parameter_combinations << endl;
+				exit(1);
 			}
 			
 			// a neighbor is better - take it:

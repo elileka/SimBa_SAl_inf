@@ -350,11 +350,19 @@ chop_prob compute_alignment_dp::get_sampled_path_last_chop(bool should_take_max,
 
 	vector<chop_prob> last_chop_options; // can be used for sampling, if needed
 	vector<double> alignments_log_probs; // can be used for sampling, if needed
-	last_chop_options.push_back(the_B_chop); // can be used for sampling, if needed
-	alignments_log_probs.push_back(the_B_chop.get_chop_log_prob()); // can be used for sampling, if needed
 
-	double best_alignment_log_prob = the_B_chop.get_chop_log_prob(); // maximum alignment, if needed
+	double best_alignment_log_prob = 1.0; // maximum alignment, if needed
 	chop_prob best_last_chop = the_B_chop;
+	if ((_length_of_anc + _length_of_des) < 100)
+	{
+		last_chop_options.push_back(the_B_chop); // can be used for sampling, if needed
+		alignments_log_probs.push_back(the_B_chop.get_chop_log_prob()); // can be used for sampling, if needed
+		best_alignment_log_prob = the_B_chop.get_chop_log_prob(); // maximum alignment, if needed
+	}
+	else
+	{
+		cout << "The sequences are long so a reliable (super samll) probability for the B chop cannot be estimated. Neglecting the B chop" << endl;
+	}
 
 	for (size_t n = 0; n < _length_of_anc; n++)
 	{
@@ -382,7 +390,7 @@ chop_prob compute_alignment_dp::get_sampled_path_last_chop(bool should_take_max,
 			last_chop_options.push_back(curr_Rnm_chop); // can be used for sampling, if needed
 			alignments_log_probs.push_back(curr_alignment_log_prob); // can be used for sampling, if needed
 
-			if (best_alignment_log_prob < curr_alignment_log_prob)
+			if ((best_alignment_log_prob > 0) || (best_alignment_log_prob < curr_alignment_log_prob)) // if uninitialized or better than current
 			{
 				best_alignment_log_prob = curr_alignment_log_prob;
 				best_last_chop = curr_Rnm_chop;
@@ -469,7 +477,7 @@ double compute_alignment_dp::compute_conditional_alignment_total_log_prob(int ba
 		if (curr_log_diff < threshold_for_exp)
 		{
 			curr_exp_of_log_diff = exp(threshold_for_exp);
-			cout << "when computing the sum of probs we take the exponenet of differences of each log-prob from the max log-prob. In this case the difference was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
+			cout << "when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
 		}
 		else
 		{
@@ -868,7 +876,7 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 				curr_exp_of_log_diff = exp(threshold_for_exp);
 				cout << "curr log-prob is: " << log_probs[i] << " and max log-prob is: " << max_obs_log_prob << endl;
 				cout << "curr anc_ind_i is: " << anc_ind_i << " and des_ind_j is: " << des_ind_j << endl;
-				cout << "when computing the sum of probs we take the exponenet of differences of each log-prob from the max log-prob. In this case the difference was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
+				cout << "when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
 			}
 			else
 			{
@@ -1077,7 +1085,7 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 			if (curr_log_diff < threshold_for_exp)
 			{
 				curr_exp_of_log_diff = exp(threshold_for_exp);
-				cout << "when computing the sum of probs we take the exponenet of differences of each log-prob from the max log-prob. In this case the difference was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
+				cout << "when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
 			}
 			else
 			{

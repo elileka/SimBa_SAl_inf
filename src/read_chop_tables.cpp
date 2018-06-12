@@ -5,13 +5,14 @@
 double read_chop_tables::get_chop_prob(const char chop_type, size_t i, size_t j)
 {
 	pair<size_t, size_t> curr_ij = make_pair(i, j);
+	size_t num_to_divide_by = (i + j) > 50 ? 50 : (i + j); // to avoid too small numbers...
 	double value_to_return_if_not_found = _min_probability / 100.0; // that is very very small but not 0
 	if (chop_type == 'N')
 	{
 		if (_N_chop_probs_map.find(curr_ij) == _N_chop_probs_map.end())
 		{
 			// not in map
-			return(value_to_return_if_not_found / exp(i + j)); // smaller if i and j are big
+			return(value_to_return_if_not_found / exp(num_to_divide_by)); // smaller if i and j are big
 		}
 		else
 		{
@@ -24,7 +25,7 @@ double read_chop_tables::get_chop_prob(const char chop_type, size_t i, size_t j)
 		if (_L_chop_probs_map.find(curr_ij) == _L_chop_probs_map.end())
 		{
 			// not in map
-			return(value_to_return_if_not_found / exp(i + j + 5)); // smaller if i and j are big, L is less probable than N
+			return(value_to_return_if_not_found / exp(num_to_divide_by + 5)); // smaller if i and j are big, L is less probable than N
 		}
 		else
 		{
@@ -37,7 +38,7 @@ double read_chop_tables::get_chop_prob(const char chop_type, size_t i, size_t j)
 		if (_R_chop_probs_map.find(curr_ij) == _R_chop_probs_map.end())
 		{
 			// not in map
-			return(value_to_return_if_not_found / exp(i + j + 5)); // smaller if i and j are big, R is less probable than N
+			return(value_to_return_if_not_found / exp(num_to_divide_by + 5)); // smaller if i and j are big, R is less probable than N
 		}
 		else
 		{
@@ -50,7 +51,7 @@ double read_chop_tables::get_chop_prob(const char chop_type, size_t i, size_t j)
 		if (_B_chop_probs_map.find(curr_ij) == _B_chop_probs_map.end())
 		{
 			// not in map
-			return(value_to_return_if_not_found / exp(i + j + 10)); // smaller if i and j are big, B is less probable than N,L,R
+			return(value_to_return_if_not_found / exp(num_to_divide_by + 10)); // smaller if i and j are big, B is less probable than N,L,R
 		}
 		else
 		{
