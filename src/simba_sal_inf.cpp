@@ -573,10 +573,10 @@ int main(int argc, const char * argv[])
 	}
 	// end hill climb from start point:
 
-	myLog << "########### END PARAMETER OPTIMIZATION ###########" << number_dp_procedures << endl;
+	myLog << "########### END PARAMETER OPTIMIZATION ###########" << endl;
 	myLog << "Best table: " << best_combination_ptr->r << ", " << best_combination_ptr->mu << ", " << best_combination_ptr->t;
 	myLog << " has LL: " << best_combination_ptr->LL_dp << endl;
-	myLog << "####### TIME MEASUREMENTS #######" << number_dp_procedures << endl;
+	myLog << "####### TIME MEASUREMENTS #######" << endl;
 	if (should_gotoh_opt)
 	{
 		myLog << "total time spent in Gotoh start point (seconds): " << elapsed_secs_in_gotoh_scan_for_start_point << endl;
