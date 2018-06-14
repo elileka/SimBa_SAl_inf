@@ -4,7 +4,7 @@ working on table: run_example/chop_tables_r_param_0.6_basic_mu_0.05_basic_gamma_
 LL with current table: -284.756
 ########### END PARAMETER OPTIMIZATION ###########
 Best table: 0.6, 0.05, 1.13 has LL: -284.756
-####### TIME MEASUREMENTS #######2
+####### TIME MEASUREMENTS #######
 total number of dp procedures: 2
 total time spent in dp procedures (seconds): 9.18
 average time per dp procedure (seconds): 4.59
