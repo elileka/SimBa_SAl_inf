@@ -1,20 +1,10 @@
-working on table: run_example\chop_tables_r_param_0.65_basic_mu_0.14_basic_gamma_0.99_max_indel_length_50_length_of_anc_1000000_t_1.11.txt
-best alignment LL with current table: -707.803
-best alignment fasta: 
->anc
-LFWRAVVAEFLATTLFVFISIGSALGFKYPVGNNQTAVQDNVKVSLAFGLSIATLAQSVGHISGAHLNPAVTLGL-LLSCQISIF---RALMYIIAQCVGAIVATAILSGI----------TSSLTGNSLGRNDLADG--------VNSGQGLGIEIIGTLQLVLCVLATTDRRRRDLGGS-APLAIGLSVA-----LGHLLAIDYTGCGINPARSFGSAVIT-------------HNFSNHWIFWVGPFIGGALAVLIYDFILA---
->des
-TLKGQCIAEFLGTGLLIFFGVGCVAALKVA-----GASFGQWEISVIWGLGVAMAIYLTAGVSGAHLNPAVTIALWLFAC----FDKRKVIPFIVSQVAGAFCAAALVYGLYYNLFFDFEQTHHIVRGSVESVDLAGTFSTYPNPHINFVQAFAVEMVITAILMGLILALTDDGNGVPRGPLAPLLIGLLIAVIGASMGPL-----TGFAMNPARDFGPKVFAWLAGWGNVAFTGGRDIPYFLVPLFGPIVGAIVGAFAYRKLIGRHL
-
-working on table: run_example\chop_tables_r_param_0_basic_mu_0.19_basic_gamma_0.99_max_indel_length_50_length_of_anc_1000000_t_1.03.txt
-best alignment LL with current table: -766.645
-best alignment fasta: 
->anc
-LFWRA-VVAEFLATTLFVFISIGSALGFKYPVGNNQTAVQ-DNVKVSLAFGLSIAT-LAQSVGHISGAHLNPAVTLGL-LLSCQISIFRALM-YIIAQCVGAIVATAILSGITSSL------TGNSL-GR--N-DLADG--------VNSGQGLGIE-IIGTLQLV-LCVLATTDRRRRDLGGS-APLAIGLSVA-LGHLLAIDYTGCGINPARSFGSAV---IT--HN--FSNHW-I--FWV---GPFIGGALAVLIY-DFI---LA
->des
-TL-KGQCIAEFLGTGLLIFFGVGCVAALK-VAGAS-FG-QWE-ISVIWGLGVAMAIYLT-A-G-VSGAHLNPAVTIALWLFAC-FDK-RKVIPFIVSQVAGAFCAAALVYGLYYNLFFDFEQTHHIVRGSVESVDLAGTFSTYPNPHINFVQAFAVEMVITAI-LMGL-ILALTDDGNGVPRGPLAPLLIGLLIAVIGASMGP-LTGFAMNPARDFGPKVFAWLAGWGNVAFTGGRDIPYFLVPLFGPIVGAIVGAFAYRKLIGRHL-
-
-total time parameter optimization stage (seconds): 20.79
-total number of computed dp alignments: 2
-total time (seconds): 20.77
-average time per dp alignment (seconds): 10.385
+working on table: run_example/chop_tables_r_param_0_basic_mu_0.07_basic_gamma_0.99_max_indel_length_50_length_of_anc_1000000_t_1.11.txt
+LL with current table: -294.284
+working on table: run_example/chop_tables_r_param_0.6_basic_mu_0.05_basic_gamma_0.99_max_indel_length_50_length_of_anc_1000000_t_1.13.txt
+LL with current table: -284.756
+########### END PARAMETER OPTIMIZATION ###########
+Best table: 0.6, 0.05, 1.13 has LL: -284.756
+####### TIME MEASUREMENTS #######
+total number of dp procedures: 2
+total time spent in dp procedures (seconds): 9.18
+average time per dp procedure (seconds): 4.59
