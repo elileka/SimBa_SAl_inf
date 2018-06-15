@@ -820,10 +820,9 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 					double curr_Nnm_total_log_prob = curr_Nnm_chop.get_chop_log_prob();
 					double curr_prev_P_log = (_P_table[curr_anc_prev_ind][curr_des_prev_ind]); // guaranteed to be computed
 
-					if (curr_prev_P_log > 0) // sanity check - preceding elements should be already computed
+					if (curr_prev_P_log > 0) // preceding elements that don't contribute to log-prob are skipped.
 					{
-						cerr << "in fill_P_table_corner_cutting: We have a bug: " << curr_prev_P_log << endl;
-						exit(1);
+						continue;
 					}
 
 					double curr_alternative_log_prob = (curr_prev_P_log + curr_Nnm_total_log_prob);
@@ -860,12 +859,7 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 					size_t curr_anc_prev_ind = (size_t)possible_curr_anc_prev_ind;
 					size_t curr_des_prev_ind = (size_t)possible_curr_des_prev_ind;
 					double curr_prev_P_log = (_P_table[curr_anc_prev_ind][curr_des_prev_ind]); // computed unless not in band
-					if ((curr_prev_P_log > 0) && (band_width == -1)) // sanity check - if no band - all preceding elements should be already computed
-					{
-						cerr << "in fill_P_table_corner_cutting: We have a bug: " << curr_prev_P_log << endl;
-						exit(1);
-					}
-					else if (curr_prev_P_log > 0) // not computed, if no bug - this is due to band
+					if (curr_prev_P_log > 0) // not computed due to band or unobservable edge chop
 					{
 						continue; // no need to consider this pair - it's out of band
 					}
@@ -1049,10 +1043,9 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 					double curr_Nnm_total_log_prob = curr_Nnm_chop.get_chop_log_prob();
 					double curr_prev_X_log = _X_table[curr_anc_prev_ind][curr_des_prev_ind]; // guaranteed to be computed
 
-					if (curr_prev_X_log > 0) // sanity check - preceding elements should be already computed
+					if (curr_prev_X_log > 0) // preceding elements that don't contribute to log-prob are skipped
 					{
-						cout << "in fill_X_table_corner_cutting: We have a bug: " << curr_prev_X_log << endl;
-						exit(1);
+						continue;
 					}
 
 					double curr_alternative_log_prob = (curr_prev_X_log + curr_Nnm_total_log_prob);
@@ -1089,12 +1082,8 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 					size_t curr_anc_prev_ind = (size_t)possible_curr_anc_prev_ind;
 					size_t curr_des_prev_ind = (size_t)possible_curr_des_prev_ind;
 					double curr_prev_X_log = _X_table[curr_anc_prev_ind][curr_des_prev_ind]; // computed unless not in band
-					if ((curr_prev_X_log > 0) && (band_width == -1)) // sanity check - if no band - all preceding elements should be already computed
-					{
-						cout << "in fill_X_table_corner_cutting: We have a bug: " << curr_prev_X_log << endl;
-						exit(1);
-					}
-					else if (curr_prev_X_log > 0) // not computed, if no bug - this is due to band
+					
+					if (curr_prev_X_log > 0) // not computed due to band or unobservable edge chop
 					{
 						continue; // no need to consider this pair - it's out of band
 					}
