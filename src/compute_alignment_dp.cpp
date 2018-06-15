@@ -381,7 +381,7 @@ chop_prob compute_alignment_dp::get_sampled_path_last_chop(bool should_take_max,
 			bool is_curr_Rnm_reasonable = curr_Rnm_chop.can_edge_chop_be_observed(); // not too different from the max i + j combinaiton observed in R table 
 			double curr_prev_S_prop = _S_table[_length_of_anc - n - 1][_length_of_des - m - 1].second;
 
-			if (curr_prev_S_prop > 0) // this cell was not computed due to corner cutting
+			if (curr_prev_S_prop > 0) // this cell was not computed due to corner cutting or unobservable L chop (e.g. S[0][9000] relies on L[0][9000], which cannot be estiamted...)
 			{
 				continue; // we don't consider this combination!
 			}
@@ -572,8 +572,8 @@ void compute_alignment_dp::fill_S_table_corner_cutting(bool should_take_max, int
 		if (is_curr_Lij_reasonable)
 		{
 			curr_iteration_path_max_log_prob = curr_Lij_total_log_prob; // can be used for max, if needed
-			chop_options.push_back(curr_Lij_chop); // can be used for sampling, if needed
 			log_probs.push_back(curr_Lij_total_log_prob); // can be used for sampling, if needed
+			chop_options.push_back(curr_Lij_chop); // can be used for sampling, if needed
 		}
 		
 		if ((anc_ind_i > 0) && (des_ind_j > 0))
@@ -605,9 +605,10 @@ void compute_alignment_dp::fill_S_table_corner_cutting(bool should_take_max, int
 					double curr_Nnm_total_log_prob = curr_Nnm_chop.get_chop_log_prob();
 					double curr_prev_path_S = (_S_table[curr_anc_prev_ind][curr_des_prev_ind]).second; // guaranteed to be computed
 
-					if (curr_prev_path_S > 0) // sanity check - preceding elements should be already computed
+					if (curr_prev_path_S > 0) // not computed due to unobservable L chops
 					{
-						cout << "We have a bug: " << curr_prev_path_S << endl;
+						//cout << "Skipping here: " << curr_prev_path_S << endl;
+						continue; // no need to consider this pair
 					}
 
 					double curr_alternative_log_prob = (curr_prev_path_S + curr_Nnm_total_log_prob);
@@ -645,13 +646,10 @@ void compute_alignment_dp::fill_S_table_corner_cutting(bool should_take_max, int
 					size_t curr_anc_prev_ind = (size_t)possible_curr_anc_prev_ind;
 					size_t curr_des_prev_ind = (size_t)possible_curr_des_prev_ind;
 					double curr_prev_path_S = (_S_table[curr_anc_prev_ind][curr_des_prev_ind]).second; // computed unless not in band
-					if ((curr_prev_path_S > 0) && (band_width == -1)) // sanity check - if no band - all preceding elements should be already computed
+					if (curr_prev_path_S > 0) // not computed due to band or unobservable L chops
 					{
-						cout << "We have a bug: " << curr_prev_path_S << endl;
-					}
-					else if (curr_prev_path_S > 0) // not computed, if no bug - this is due to band
-					{
-						continue; // no need to consider this pair - it's out of band
+						//cout << "Skipping here: " << curr_prev_path_S << endl;
+						continue; // no need to consider this pair
 					}
 
 					// now - the actual computation:
@@ -687,9 +685,17 @@ void compute_alignment_dp::fill_S_table_corner_cutting(bool should_take_max, int
 		}
 		else // sample
 		{
-			size_t sampled_ind = sample_index_gumbel_max(log_probs);
-			_S_table[anc_ind_i][des_ind_j] = make_pair(chop_options[sampled_ind], log_probs[sampled_ind]);
-			//cout << "i:" << anc_ind_i << " j:" << des_ind_j << ", sampled index " << sampled_ind << " out of " << log_probs.size() << " options" << endl;
+			if (! log_probs.empty()) 
+			{
+				size_t sampled_ind = sample_index_gumbel_max(log_probs);
+				_S_table[anc_ind_i][des_ind_j] = make_pair(chop_options[sampled_ind], log_probs[sampled_ind]);
+				//cout << "i:" << anc_ind_i << " j:" << des_ind_j << ", sampled index " << sampled_ind << " out of " << log_probs.size() << " options" << endl;
+			}
+			else
+			{
+				// In case of i=0 and j=800 we have Li,j that is not reasonable and now N chops so we reach this stage...
+				_S_table[anc_ind_i][des_ind_j] = make_pair(curr_path_max_chop, 1.0);
+			}
 		}
 	}
 }
