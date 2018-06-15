@@ -430,12 +430,17 @@ double compute_alignment_dp::compute_conditional_alignment_total_log_prob(int ba
 	vector<size_t> anc_seq = _coded_seqs[0];
 	vector<size_t> des_seq = _coded_seqs[1];
 
-	chop_prob the_B_chop(_chop_tables_obj, 'B', _length_of_anc, _length_of_des, 0, 0, des_seq, _branch_length_t, _is_jc, _quick_jtt_obj);
-	double curr_B_total_log_prob = the_B_chop.get_chop_log_prob();
-
+	double max_obs_log_prob = 1.0; // initialize
 	vector<double> log_probs; // will be used for summing probs
-	log_probs.push_back(curr_B_total_log_prob); // add the first log prob
-	double max_obs_log_prob = curr_B_total_log_prob; // initialize
+
+	// consider the B chop only if sequences are short:
+	if ((_length_of_anc + _length_of_des) < 100)
+	{
+		chop_prob the_B_chop(_chop_tables_obj, 'B', _length_of_anc, _length_of_des, 0, 0, des_seq, _branch_length_t, _is_jc, _quick_jtt_obj);
+		double curr_B_total_log_prob = the_B_chop.get_chop_log_prob();
+		log_probs.push_back(curr_B_total_log_prob); // add the B chop as the first log prob
+		max_obs_log_prob = curr_B_total_log_prob; // update
+	}
 
 	for (size_t n = 0; n < _length_of_anc; n++)
 	{
@@ -457,13 +462,17 @@ double compute_alignment_dp::compute_conditional_alignment_total_log_prob(int ba
 			{
 				continue; // skipping this
 			}
+			if (! curr_Rnm_chop.can_edge_chop_be_observed())
+			{
+				continue; // skipping because Rn,m is not realistic
+			}
 
 			double curr_alternative_log_prob = (curr_prev_P_log + curr_Rnm_total_log_prob);
 
 			log_probs.push_back(curr_alternative_log_prob); // add current log prob
 
 			// update max - these will be used in the sum of probs computation:
-			if (max_obs_log_prob < curr_alternative_log_prob)
+			if ((max_obs_log_prob > 0) || (max_obs_log_prob < curr_alternative_log_prob))
 			{
 				max_obs_log_prob = curr_alternative_log_prob;
 			}
@@ -770,12 +779,17 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 			inserted_des_chars.push_back(des_seq[k]);
 		}
 
+		vector<double> log_probs; // will be used for summing probs
+		double max_obs_log_prob = 1.0; // initialize
+
 		chop_prob curr_Lij_chop(_chop_tables_obj, 'L', anc_ind_i, des_ind_j, anc_matched_char, des_matched_char, inserted_des_chars, _branch_length_t, _is_jc, _quick_jtt_obj);
 		double curr_Lij_total_log_prob = curr_Lij_chop.get_chop_log_prob();
-
-		vector<double> log_probs; // will be used for summing probs
-		log_probs.push_back(curr_Lij_total_log_prob); // add the first log prob
-		double max_obs_log_prob = curr_Lij_total_log_prob; // initialize
+		// consider the L chop only if it is observable:
+		if (curr_Lij_chop.can_edge_chop_be_observed())
+		{
+			log_probs.push_back(curr_Lij_total_log_prob); // add the log prob of L
+			max_obs_log_prob = curr_Lij_total_log_prob; // update
+		}
 
 		if ((anc_ind_i > 0) && (des_ind_j > 0))
 		{
@@ -808,7 +822,7 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 
 					if (curr_prev_P_log > 0) // sanity check - preceding elements should be already computed
 					{
-						cerr << "in fill_X_table_corner_cutting: We have a bug: " << curr_prev_P_log << endl;
+						cerr << "in fill_P_table_corner_cutting: We have a bug: " << curr_prev_P_log << endl;
 						exit(1);
 					}
 
@@ -817,7 +831,7 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 					log_probs.push_back(curr_alternative_log_prob); // add current log prob
 
 					// update max - these will be used in the sum of probs computation:
-					if (max_obs_log_prob < curr_alternative_log_prob)
+					if ((max_obs_log_prob > 0) || (max_obs_log_prob < curr_alternative_log_prob))
 					{
 						max_obs_log_prob = curr_alternative_log_prob;
 					}
@@ -874,7 +888,7 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 					log_probs.push_back(curr_alternative_log_prob); // add current log prob
 
 					// update max - these will be used in the sum of probs computation:
-					if (max_obs_log_prob < curr_alternative_log_prob)
+					if ((max_obs_log_prob > 0) || (max_obs_log_prob < curr_alternative_log_prob))
 					{
 						max_obs_log_prob = curr_alternative_log_prob;
 					}
@@ -882,39 +896,47 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 			}
 		}
 
-		// compute sum of probs:
-		// the idea here is to reduce max_obs_log_prob from all log-probs
-		// we can then do exp(a - max_obs_log_prob), where 'a' is each of the log-probs
-		// then we take log(exp(a0 - max_obs_log_prob) + exp(a1 - max_obs_log_prob) + ... )
-		// https://en.wikipedia.org/wiki/LogSumExp
-		double threshold_for_exp = std::numeric_limits<double>::min_exponent; // below this there is a risk of an underflow...
-		double sum_of_exp_reduced_log_probs = 0.0;
-		for (size_t i = 0; i < log_probs.size(); i++)
-		{
-			//cout << "curr log-prob is: " << log_probs[i] << " and max log-prob is: " << max_obs_log_prob << endl;
-			double curr_log_diff = log_probs[i] - max_obs_log_prob;
-			if (curr_log_diff > 0)
-			{
-				cerr << "in fill_P_table_corner_cutting: curr_log_diff is greater than 0. that cannot be..." << curr_log_diff << endl;
-				exit(1);
-			}
-			double curr_exp_of_log_diff;
-			if (curr_log_diff < threshold_for_exp)
-			{
-				curr_exp_of_log_diff = exp(threshold_for_exp);
-				cout << "curr log-prob is: " << log_probs[i] << " and max log-prob is: " << max_obs_log_prob << endl;
-				cout << "curr anc_ind_i is: " << anc_ind_i << " and des_ind_j is: " << des_ind_j << endl;
-				cout << "in fill_P_table_corner_cutting: when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference" << curr_log_diff << " was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
-			}
-			else
-			{
-				curr_exp_of_log_diff = exp(curr_log_diff);
-			}
-			sum_of_exp_reduced_log_probs += curr_exp_of_log_diff;
-		}
-		_P_table[anc_ind_i][des_ind_j] = log(sum_of_exp_reduced_log_probs) + max_obs_log_prob;
-	}
 
+		if (log_probs.size() == 0)
+		{
+			// this can happen if i=0 and j=9000, for example (then Lij is invalid)
+			_P_table[anc_ind_i][des_ind_j] = max_obs_log_prob;
+		}
+		else
+		{
+			// compute sum of probs:
+			// the idea here is to reduce max_obs_log_prob from all log-probs
+			// we can then do exp(a - max_obs_log_prob), where 'a' is each of the log-probs
+			// then we take log(exp(a0 - max_obs_log_prob) + exp(a1 - max_obs_log_prob) + ... )
+			// https://en.wikipedia.org/wiki/LogSumExp
+			double threshold_for_exp = std::numeric_limits<double>::min_exponent; // below this there is a risk of an underflow...
+			double sum_of_exp_reduced_log_probs = 0.0;
+			for (size_t i = 0; i < log_probs.size(); i++)
+			{
+				//cout << "curr log-prob is: " << log_probs[i] << " and max log-prob is: " << max_obs_log_prob << endl;
+				double curr_log_diff = log_probs[i] - max_obs_log_prob;
+				if (curr_log_diff > 0)
+				{
+					cerr << "in fill_P_table_corner_cutting: curr_log_diff is greater than 0. that cannot be..." << curr_log_diff << endl;
+					exit(1);
+				}
+				double curr_exp_of_log_diff;
+				if (curr_log_diff < threshold_for_exp)
+				{
+					curr_exp_of_log_diff = exp(threshold_for_exp);
+					cout << "curr log-prob is: " << log_probs[i] << " and max log-prob is: " << max_obs_log_prob << endl;
+					cout << "curr anc_ind_i is: " << anc_ind_i << " and des_ind_j is: " << des_ind_j << endl;
+					cout << "in fill_P_table_corner_cutting: when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference" << curr_log_diff << " was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
+				}
+				else
+				{
+					curr_exp_of_log_diff = exp(curr_log_diff);
+				}
+				sum_of_exp_reduced_log_probs += curr_exp_of_log_diff;
+			}
+			_P_table[anc_ind_i][des_ind_j] = log(sum_of_exp_reduced_log_probs) + max_obs_log_prob;	
+		}
+	}
 	_is_P_computed = true; // now it is computed - no need to recompute in the future
 }
 
@@ -983,12 +1005,17 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 			}
 		}
 
+		vector<double> log_probs; // will be used for summing probs
+		double max_obs_log_prob = 1.0; // initialize
+
 		chop_prob curr_R_chop(_chop_tables_obj, 'R', (_length_of_anc - anc_ind_i - 1), (_length_of_des - des_ind_j - 1), 0, 0, inserted_des_chars, _branch_length_t, _is_jc, _quick_jtt_obj);
 		double curr_R_total_log_prob = curr_R_chop.get_chop_log_prob();
-
-		vector<double> log_probs; // will be used for summing probs
-		log_probs.push_back(curr_R_total_log_prob); // add the first log prob
-		double max_obs_log_prob = curr_R_total_log_prob; // initialize
+		// consider the R chop only if it is observable
+		if (curr_R_chop.can_edge_chop_be_observed())
+		{
+			log_probs.push_back(curr_R_total_log_prob); // add the R log prob
+			max_obs_log_prob = curr_R_total_log_prob; // update
+		}
 
 		if ((anc_ind_i < (_length_of_anc - 1)) && (des_ind_j < (_length_of_des - 1)))
 		{
@@ -1033,7 +1060,7 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 					log_probs.push_back(curr_alternative_log_prob); // add current log prob
 
 																	// update max - these will be used in the sum of probs computation:
-					if (max_obs_log_prob < curr_alternative_log_prob)
+					if ((max_obs_log_prob > 0) || (max_obs_log_prob < curr_alternative_log_prob))
 					{
 						max_obs_log_prob = curr_alternative_log_prob;
 					}
@@ -1093,7 +1120,7 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 					log_probs.push_back(curr_alternative_log_prob); // add current log prob
 
 					// update max - these will be used in the sum of probs computation:
-					if (max_obs_log_prob < curr_alternative_log_prob)
+					if ((max_obs_log_prob > 0) || (max_obs_log_prob < curr_alternative_log_prob))
 					{
 						max_obs_log_prob = curr_alternative_log_prob;
 					}
@@ -1101,34 +1128,42 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 			}		
 		}
 
-		// compute sum of probs:
-		// the idea here is to reduce max_obs_log_prob from all log-probs
-		// we can then do exp(a - max_obs_log_prob), where 'a' is each of the log-probs
-		// then we take log(exp(a0 - max_obs_log_prob) + exp(a1 - max_obs_log_prob) + ... )
-		// https://en.wikipedia.org/wiki/LogSumExp
-		double threshold_for_exp = std::numeric_limits<double>::min_exponent; // below this there is a risk of an underflow...
-		double sum_of_exp_reduced_log_probs = 0.0;
-		for (size_t i = 0; i < log_probs.size(); i++)
+		
+		if (log_probs.size() == 0)
 		{
-			double curr_log_diff = log_probs[i] - max_obs_log_prob;
-			if (curr_log_diff > 0)
-			{
-				cerr << "in fill_X_table_corner_cutting: curr_log_diff is greater than 0. that cannot be..." << curr_log_diff << endl;
-				exit(1);
-			}
-			double curr_exp_of_log_diff;
-			if (curr_log_diff < threshold_for_exp)
-			{
-				curr_exp_of_log_diff = exp(threshold_for_exp);
-				cout << "in fill_X_table_corner_cutting: when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference " << curr_log_diff << " was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
-			}
-			else
-			{
-				curr_exp_of_log_diff = exp(curr_log_diff);
-			}
-			sum_of_exp_reduced_log_probs += curr_exp_of_log_diff;
+			_X_table[anc_ind_i][des_ind_j] = max_obs_log_prob;
 		}
-		_X_table[anc_ind_i][des_ind_j] = log(sum_of_exp_reduced_log_probs) + max_obs_log_prob;
+		else
+		{
+			// compute sum of probs:
+			// the idea here is to reduce max_obs_log_prob from all log-probs
+			// we can then do exp(a - max_obs_log_prob), where 'a' is each of the log-probs
+			// then we take log(exp(a0 - max_obs_log_prob) + exp(a1 - max_obs_log_prob) + ... )
+			// https://en.wikipedia.org/wiki/LogSumExp
+			double threshold_for_exp = std::numeric_limits<double>::min_exponent; // below this there is a risk of an underflow...
+			double sum_of_exp_reduced_log_probs = 0.0;
+			for (size_t i = 0; i < log_probs.size(); i++)
+			{
+				double curr_log_diff = log_probs[i] - max_obs_log_prob;
+				if (curr_log_diff > 0)
+				{
+					cerr << "in fill_X_table_corner_cutting: curr_log_diff is greater than 0. that cannot be..." << curr_log_diff << endl;
+					exit(1);
+				}
+				double curr_exp_of_log_diff;
+				if (curr_log_diff < threshold_for_exp)
+				{
+					curr_exp_of_log_diff = exp(threshold_for_exp);
+					cout << "in fill_X_table_corner_cutting: when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference " << curr_log_diff << " was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
+				}
+				else
+				{
+					curr_exp_of_log_diff = exp(curr_log_diff);
+				}
+				sum_of_exp_reduced_log_probs += curr_exp_of_log_diff;
+			}
+			_X_table[anc_ind_i][des_ind_j] = log(sum_of_exp_reduced_log_probs) + max_obs_log_prob;
+		}
 	}
 
 	_is_X_computed = true; // now it is computed - no need to recompute in the future
