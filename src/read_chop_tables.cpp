@@ -103,10 +103,26 @@ void read_chop_tables::read_tables_from_file()
 		else if (chop_type.compare("L") == 0)
 		{
 			_L_chop_probs_map[curr_ij] = chop_prob;
+			if (i > _max_i_in_L_table)
+			{
+				_max_i_in_L_table = i;
+			}
+			if (j > _max_j_in_L_table)
+			{
+				_max_j_in_L_table = j;
+			}
 		}
 		else if (chop_type.compare("R") == 0)
 		{
 			_R_chop_probs_map[curr_ij] = chop_prob;
+			if (i > _max_i_in_R_table)
+			{
+				_max_i_in_R_table = i;
+			}
+			if (j > _max_j_in_R_table)
+			{
+				_max_j_in_R_table = j;
+			}
 		}
 		else if (chop_type.compare("B") == 0)
 		{

@@ -378,9 +378,14 @@ chop_prob compute_alignment_dp::get_sampled_path_last_chop(bool should_take_max,
 			}
 			chop_prob curr_Rnm_chop(_chop_tables_obj, 'R', n, m, 0, 0, inserted_des_chars_internal, _branch_length_t, _is_jc, _quick_jtt_obj);
 			double curr_Rnm_total_log_prob = curr_Rnm_chop.get_chop_log_prob();
+			bool is_curr_Rnm_reasonable = curr_Rnm_chop.can_edge_chop_be_observed(); // not too different from the max i + j combinaiton observed in R table 
 			double curr_prev_S_prop = _S_table[_length_of_anc - n - 1][_length_of_des - m - 1].second;
 
 			if (curr_prev_S_prop > 0) // this cell was not computed due to corner cutting
+			{
+				continue; // we don't consider this combination!
+			}
+			if (! is_curr_Rnm_reasonable) // this Rnm cannot really be observed with the table...
 			{
 				continue; // we don't consider this combination!
 			}
@@ -557,15 +562,20 @@ void compute_alignment_dp::fill_S_table_corner_cutting(bool should_take_max, int
 
 		chop_prob curr_Lij_chop(_chop_tables_obj, 'L', anc_ind_i, des_ind_j, anc_matched_char, des_matched_char, inserted_des_chars, _branch_length_t, _is_jc, _quick_jtt_obj);
 		double curr_Lij_total_log_prob = curr_Lij_chop.get_chop_log_prob();
-
-		chop_prob curr_path_max_chop = curr_Lij_chop; // can be used for max, if needed
-		double curr_iteration_path_max_log_prob = curr_Lij_total_log_prob; // can be used for max, if needed
+		bool is_curr_Lij_reasonable = curr_Lij_chop.can_edge_chop_be_observed(); // not too different from the max i + j combinaiton observed in L table
 
 		vector<chop_prob> chop_options; // can be used for sampling, if needed
 		vector<double> log_probs; // can be used for sampling, if needed
-		chop_options.push_back(curr_Lij_chop); // can be used for sampling, if needed
-		log_probs.push_back(curr_Lij_total_log_prob); // can be used for sampling, if needed
 
+		double curr_iteration_path_max_log_prob = 1.0;
+		chop_prob curr_path_max_chop = curr_Lij_chop; // can be used for max, if needed
+		if (is_curr_Lij_reasonable)
+		{
+			curr_iteration_path_max_log_prob = curr_Lij_total_log_prob; // can be used for max, if needed
+			chop_options.push_back(curr_Lij_chop); // can be used for sampling, if needed
+			log_probs.push_back(curr_Lij_total_log_prob); // can be used for sampling, if needed
+		}
+		
 		if ((anc_ind_i > 0) && (des_ind_j > 0))
 		{
 			// more efficiant to iterate over pairs:
@@ -605,7 +615,7 @@ void compute_alignment_dp::fill_S_table_corner_cutting(bool should_take_max, int
 					chop_options.push_back(curr_Nnm_chop); // can be used for sampling, if needed
 					log_probs.push_back(curr_alternative_log_prob); // can be used for sampling, if needed
 
-					if (curr_iteration_path_max_log_prob < curr_alternative_log_prob)
+					if ((curr_iteration_path_max_log_prob == 1.0) || (curr_iteration_path_max_log_prob < curr_alternative_log_prob))
 					{
 						curr_iteration_path_max_log_prob = curr_alternative_log_prob; // can be used for max, if needed
 						curr_path_max_chop = curr_Nnm_chop; // can be used for max, if needed
@@ -662,7 +672,7 @@ void compute_alignment_dp::fill_S_table_corner_cutting(bool should_take_max, int
 					chop_options.push_back(curr_Nnm_chop); // can be used for sampling, if needed
 					log_probs.push_back(curr_alternative_log_prob); // can be used for sampling, if needed
 
-					if (curr_iteration_path_max_log_prob < curr_alternative_log_prob)
+					if ((curr_iteration_path_max_log_prob == 1.0) || (curr_iteration_path_max_log_prob < curr_alternative_log_prob))
 					{
 						curr_iteration_path_max_log_prob = curr_alternative_log_prob; // can be used for max, if needed
 						curr_path_max_chop = curr_Nnm_chop; // can be used for max, if needed

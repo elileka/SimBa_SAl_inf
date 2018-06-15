@@ -122,3 +122,35 @@ void chop_prob::compute_chop_prob()
 	_indel_log_prob = log(_chop_tables_obj.get_chop_prob(_chop_type, _i, _j));
 	_chop_log_prob = _sub_log_prob + _indel_log_prob;
 }
+
+bool chop_prob::can_edge_chop_be_observed()
+{
+	size_t factor_1 = 2;
+	size_t factor_2 = 10;
+
+	if (_chop_type == 'L')
+	{
+		if ((_i <= ((factor_1 * _chop_tables_obj.get_max_i_in_L_table()) + factor_2)) && (_j <= ((factor_1 * _chop_tables_obj.get_max_j_in_L_table()) + factor_2)))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	if (_chop_type == 'R')
+	{
+		if ((_i <= ((factor_1 * _chop_tables_obj.get_max_i_in_R_table()) + factor_2)) && (_j <= ((factor_1 * _chop_tables_obj.get_max_j_in_R_table()) + factor_2)))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	
+	// unrecognized chop type
+	return false;
+}

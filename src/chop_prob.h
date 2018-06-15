@@ -27,6 +27,7 @@ public:
 	} //constructor
 	chop_prob& operator = (const chop_prob&);
 
+	bool can_edge_chop_be_observed();
 	double get_chop_log_prob() const { return _chop_log_prob; }
 	void print_chop_info() const;
 	char get_chop_type() const { return _chop_type; }
