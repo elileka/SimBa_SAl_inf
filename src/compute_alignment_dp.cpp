@@ -361,7 +361,7 @@ chop_prob compute_alignment_dp::get_sampled_path_last_chop(bool should_take_max,
 	}
 	else
 	{
-		cout << "The sequences are long so a reliable (super samll) probability for the B chop cannot be estimated. Neglecting the B chop" << endl;
+		cout << "in get_sampled_path_last_chop: The sequences are long so a reliable (super samll) probability for the B chop cannot be estimated. Neglecting the B chop" << endl;
 	}
 
 	for (size_t n = 0; n < _length_of_anc; n++)
@@ -478,11 +478,16 @@ double compute_alignment_dp::compute_conditional_alignment_total_log_prob(int ba
 	for (size_t i = 0; i < log_probs.size(); i++)
 	{
 		double curr_log_diff = log_probs[i] - max_obs_log_prob;
+		if (curr_log_diff > 0)
+		{
+			cerr << "in compute_conditional_alignment_total_log_prob: curr_log_diff is greater than 0. that cannot be..." << curr_log_diff << endl;
+			exit(1);
+		}
 		double curr_exp_of_log_diff;
 		if (curr_log_diff < threshold_for_exp)
 		{
 			curr_exp_of_log_diff = exp(threshold_for_exp);
-			cout << "when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
+			cout << "in compute_conditional_alignment_total_log_prob: when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference " << curr_log_diff << " was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
 		}
 		else
 		{
@@ -803,7 +808,8 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 
 					if (curr_prev_P_log > 0) // sanity check - preceding elements should be already computed
 					{
-						cout << "We have a bug: " << curr_prev_P_log << endl;
+						cerr << "in fill_X_table_corner_cutting: We have a bug: " << curr_prev_P_log << endl;
+						exit(1);
 					}
 
 					double curr_alternative_log_prob = (curr_prev_P_log + curr_Nnm_total_log_prob);
@@ -842,7 +848,8 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 					double curr_prev_P_log = (_P_table[curr_anc_prev_ind][curr_des_prev_ind]); // computed unless not in band
 					if ((curr_prev_P_log > 0) && (band_width == -1)) // sanity check - if no band - all preceding elements should be already computed
 					{
-						cerr << "We have a bug: " << curr_prev_P_log << endl;
+						cerr << "in fill_P_table_corner_cutting: We have a bug: " << curr_prev_P_log << endl;
+						exit(1);
 					}
 					else if (curr_prev_P_log > 0) // not computed, if no bug - this is due to band
 					{
@@ -886,13 +893,18 @@ void compute_alignment_dp::fill_P_table_corner_cutting(int band_width)
 		{
 			//cout << "curr log-prob is: " << log_probs[i] << " and max log-prob is: " << max_obs_log_prob << endl;
 			double curr_log_diff = log_probs[i] - max_obs_log_prob;
+			if (curr_log_diff > 0)
+			{
+				cerr << "in fill_P_table_corner_cutting: curr_log_diff is greater than 0. that cannot be..." << curr_log_diff << endl;
+				exit(1);
+			}
 			double curr_exp_of_log_diff;
 			if (curr_log_diff < threshold_for_exp)
 			{
 				curr_exp_of_log_diff = exp(threshold_for_exp);
 				cout << "curr log-prob is: " << log_probs[i] << " and max log-prob is: " << max_obs_log_prob << endl;
 				cout << "curr anc_ind_i is: " << anc_ind_i << " and des_ind_j is: " << des_ind_j << endl;
-				cout << "when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
+				cout << "in fill_P_table_corner_cutting: when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference" << curr_log_diff << " was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
 			}
 			else
 			{
@@ -1012,7 +1024,8 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 
 					if (curr_prev_X_log > 0) // sanity check - preceding elements should be already computed
 					{
-						cout << "We have a bug: " << curr_prev_X_log << endl;
+						cout << "in fill_X_table_corner_cutting: We have a bug: " << curr_prev_X_log << endl;
+						exit(1);
 					}
 
 					double curr_alternative_log_prob = (curr_prev_X_log + curr_Nnm_total_log_prob);
@@ -1051,7 +1064,8 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 					double curr_prev_X_log = _X_table[curr_anc_prev_ind][curr_des_prev_ind]; // computed unless not in band
 					if ((curr_prev_X_log > 0) && (band_width == -1)) // sanity check - if no band - all preceding elements should be already computed
 					{
-						cout << "We have a bug: " << curr_prev_X_log << endl;
+						cout << "in fill_X_table_corner_cutting: We have a bug: " << curr_prev_X_log << endl;
+						exit(1);
 					}
 					else if (curr_prev_X_log > 0) // not computed, if no bug - this is due to band
 					{
@@ -1097,11 +1111,16 @@ void compute_alignment_dp::fill_X_table_corner_cutting(int band_width)
 		for (size_t i = 0; i < log_probs.size(); i++)
 		{
 			double curr_log_diff = log_probs[i] - max_obs_log_prob;
+			if (curr_log_diff > 0)
+			{
+				cerr << "in fill_X_table_corner_cutting: curr_log_diff is greater than 0. that cannot be..." << curr_log_diff << endl;
+				exit(1);
+			}
 			double curr_exp_of_log_diff;
 			if (curr_log_diff < threshold_for_exp)
 			{
 				curr_exp_of_log_diff = exp(threshold_for_exp);
-				cout << "when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
+				cout << "in fill_X_table_corner_cutting: when computing the sum of probs we take the exponent of differences of each log-prob from the max log-prob. In this case the difference " << curr_log_diff << " was smaller than " << threshold_for_exp << " so we took " << threshold_for_exp << " to avoid an underflow" << endl;
 			}
 			else
 			{

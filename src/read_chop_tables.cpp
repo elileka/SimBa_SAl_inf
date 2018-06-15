@@ -5,7 +5,7 @@
 double read_chop_tables::get_chop_prob(const char chop_type, size_t i, size_t j)
 {
 	pair<size_t, size_t> curr_ij = make_pair(i, j);
-	size_t num_to_divide_by = (i + j) > 680 ? 680 : (i + j); // to avoid too small numbers...
+	size_t num_to_divide_by = (i + j) > 200 ? 200 : (i + j); // to avoid too small numbers...
 	double value_to_return_if_not_found = _min_probability / 100.0; // that is very very small but not 0
 	if (chop_type == 'N')
 	{
